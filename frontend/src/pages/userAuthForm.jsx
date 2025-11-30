@@ -7,17 +7,18 @@ import axios from "axios"
 import {useContext} from "react"
 import {storeInSession} from "../common/session"
 import {UserContext} from "../App"
+import { authWithGoogle } from "../common/firebase"
 
 const UserAuthForm = ({type}) => {
 
   let {
     userAuth: {access_token},
     setUserAuth
-  } = useContext(UserContext)
-
-  
+  } = useContext(UserContext)  
 
   const userAuthThroughServer = (serverRoute, formData) => {
+    console.log(import.meta.env.VITE_SERVER_DOMAIN + serverRoute, formData);
+    
     axios
       .post(import.meta.env.VITE_SERVER_DOMAIN + serverRoute, formData)
       .then(({data}) => {
@@ -25,7 +26,10 @@ const UserAuthForm = ({type}) => {
         setUserAuth(data)
 
       })
-      .catch(({response}) => {toast.error(response.data.error)})
+      .catch(response => {
+        console.log(response.data.error);
+        toast.error(response.data.error)
+      })
   }
 
   const handleSubmit = (e) => {
@@ -59,8 +63,26 @@ const UserAuthForm = ({type}) => {
         "Password should have minimum 8 characters. Password must have a number, a special character and a letter. No spaces allowed."
       )
 
-    userAuthThroughServer(serverRoute, formData)
+    userAuthThroughServer(serverRoute, formData);
+
   }
+  const handleGoogleAuth = (e) => {
+      e.preventDefault()
+    authWithGoogle().then(user => {
+      let serverRoute = "/google-auth"
+      let formData = {
+        access_token:user.access_token
+      }
+
+      userAuthThroughServer(serverRoute,formData)
+    })
+      .catch((err => {
+        toast.error('Trouble login through google');
+        return console.log(err);
+        
+      }))
+  }
+  
   return (
     access_token ?
     <Navigate to="/" />  
@@ -109,7 +131,7 @@ const UserAuthForm = ({type}) => {
               <hr className="w-1/2 border-black" />
             </div>
 
-            <button className="btn-dark flex items-center justify-center gap-4 w-[90%] center">
+            <button className="btn-dark flex items-center justify-center gap-4 w-[90%] center" onClick={handleGoogleAuth}>
               <img src={googleIcon} className="w-5" />
               Continue with Google
             </button>

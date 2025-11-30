@@ -1,8 +1,26 @@
 import {Link, Outlet} from "react-router-dom"
 import logo from "../images/R-logo.svg"
-import {useState} from "react"
+import {useContext, useState} from "react"
+import { UserContext } from "../App"
+import UserNavigationPanel from "./userNavigation"
 const Navbar = () => {
+
   const [searchBoxVisibility, setSearchBoxVisibility] = useState(false)
+
+  const [userNavPanel, setUserNavPanel] = useState(false)
+
+  const {userAuth,userAuth:{access_token,profile_img} } = useContext(UserContext);
+
+  const handleUserNavPanel = () => {
+    setUserNavPanel(currentVal => !currentVal);
+
+  }
+  
+  const handleMouseDown = (e) => {
+    e.preventDefault();
+  }
+  
+
   return (
     <>
       <nav className="navbar">
@@ -36,12 +54,33 @@ const Navbar = () => {
             <i className="fi fi-rr-file-edit"></i>
             <p>Write</p>
           </Link>
+
+          {
+
+            access_token ?
+              <>
+                <Link to="/dashboard/notification" >
+                  <button className="w-12 h-12 rounded-full bg-gray-200 relative hover:bg-black/10" >
+                  <i className="fi fi-rr-bell text-2xl block mt-1" ></i>
+                  </button></Link>
+                <div className="relative" onClick={handleUserNavPanel} onMouseDown={handleMouseDown}>
+                  <button className="w-12 h-12 mt-1" >
+                    <img src ={profile_img} className="w-full h-full object-cover rounded-full" />
+                  </button>
+               
+                  {userNavPanel && <UserNavigationPanel type="" />}
+                </div>
+              </>
+              :
+            <>
           <Link className="btn-dark py-2" to="/signin">
             Sign In
           </Link>
           <Link className="btn-light py-2 hidden md:block" to="/signup">
             Sign Up
-          </Link>
+          </Link></>
+          }
+          
         </div>
       </nav>
 

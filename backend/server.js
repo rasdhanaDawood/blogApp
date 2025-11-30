@@ -5,11 +5,19 @@ import "dotenv/config"
 import bcrypt from "bcrypt"
 import {nanoid} from "nanoid"
 import jwt from "jsonwebtoken"
-
+import admin from "firebase-admin"
+import { createRequire } from "module"
+const require = createRequire(import.meta.url)
+const serviceAccountKey = require("./mern-blog-website-15a5d-firebase-adminsdk-fbsvc-a5be881341.json")
+import { getAuth } from "firebase-admin/auth"
 import User from "./Schema/User.js"
 
 const server = express()
 let port = 3000
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccountKey)
+})
 
 let emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 let passwordRegex = /^(?=.*\d)(?=.*\W)(?=.*[a-zA-Z])(?!.*\s).{8,}$/
@@ -116,6 +124,51 @@ server.post("/signin", async (req, res) => {
       console.log(err)
       return res.status(500).json({error: err.message})
     })
+})
+
+server.post("/google-auth", async (req, res) => {
+  let { access_token } = req.body;
+  console.log(access_token);
+  
+  admin.auth()
+    .verifyIdToken(access_token)
+    .then(async (decodedUser) => {
+
+      let { email, name, picture } = decodedUser;
+      picture = picture.replace("s96-c", "s384-c")
+      let user = await User.findOne({ "personal_info.email": email }).select("personal_info.fullname personal_info.username personal_info.profile_img google_auth")
+        .then((u) =>{
+          return u || null
+        })
+        .catch((err) => {
+        return res.status(500).json({error:err.message})
+      })
+      
+
+      if (user) {
+        if (!user.google_auth) {
+          return res.status(500).json({
+            error: "This email was signed up without google. Please log in with password to access account!"
+            
+          })
+
+        }
+      } else {
+        let username = await generateUsername(email);
+        user = new User({
+          personal_info: { fullname: name, email, profile_img: picture, username },
+          google_auth: true
+        });
+        await user.save().then(u => user = u)
+  .catch(err=> res.status(500).json({error:err.message}))
+      }
+
+      return res.status(200).json(formatDatatoSend(user))
+    
+    })
+    .catch(err => res.status(500).json({ error: "Failed to authenticate you with Google.Try with some other google account" })
+  )
+  
 })
 
 server.listen(port, () => {
