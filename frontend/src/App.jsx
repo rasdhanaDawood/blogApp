@@ -1,11 +1,12 @@
 import {Route, Routes} from "react-router-dom"
 import "./App.css"
-import Navbar from "./components/navbar"
 import UserAuthForm from "./pages/userAuthForm"
 import {createContext, useEffect, useState} from "react"
 import {lookInSession} from "./common/session"
 import UserProfilePage from "./pages/userProfilePage"
 import Blogs from "./pages/blogs"
+import Editor from "./pages/editor"
+import Navbar from "./components/Navbar"
 
 export const UserContext = createContext({})
 
@@ -24,11 +25,13 @@ function App() {
   return (
     <UserContext.Provider value={{userAuth, setUserAuth}}>
       <Routes> 
+        <Route path="/editor" element={<Editor />} />
+        <Route path="user/:username" element={<UserProfilePage />} />
+          <Route path="dashboard/blogs" element={<Blogs />} />
         <Route path="/" element={<Navbar />}>
           <Route path="signin" element={<UserAuthForm type="sign-in" />} />
           <Route path="signup" element={<UserAuthForm type="sign-up" />} />
-          <Route path="user/:username" element={<UserProfilePage />} />
-          <Route path="dashboard/blogs" element={<Blogs />} />
+          
           {/* <Route path="settings/edit-profile" element={<settings/>}/> */}
           
         </Route>

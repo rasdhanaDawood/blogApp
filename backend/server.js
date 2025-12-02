@@ -7,10 +7,12 @@ import {nanoid} from "nanoid"
 import jwt from "jsonwebtoken"
 import admin from "firebase-admin"
 import { createRequire } from "module"
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
 const require = createRequire(import.meta.url)
 const serviceAccountKey = require("./mern-blog-website-15a5d-firebase-adminsdk-fbsvc-a5be881341.json")
-import { getAuth } from "firebase-admin/auth"
 import User from "./Schema/User.js"
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
+
 
 const server = express()
 let port = 3000
@@ -32,9 +34,32 @@ mongoose
   .then(() => console.log("mongodb connected"))
   .catch((err) => console.error(err))
 
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials:{
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey:process.env.AWS_SECRET_ACCESS_KEY
+  }
+})
+
+const generateUploadURL = async (s3Client) => {
+
+  const date = new Date();
+  const imageName = `${nanoid()}-${date.getTime()}.jpeg`
+
+  const command = new PutObjectCommand({
+     Bucket: 'mernblog-website',
+    Key: imageName,
+    ContentType: "image/jpeg"
+  })
+  
+  return await getSignedUrl(s3Client,command, {
+    expiresIn: 1000
+  })
+
+}
 const formatDatatoSend = (user) => {
   const access_token = jwt.sign({id: user._id}, process.env.SECRET_ACCESS_KEY)
-console.log("access token:",access_token);
 
   return {
     access_token,
@@ -53,6 +78,19 @@ const generateUsername = async (email) => {
   isUsernameNotUnique ? (username += nanoid().substring(0, 5)) : ""
   return username
 }
+
+server.get('/get-upload-url',async (req, res) => {
+  try {
+    const url = await generateUploadURL(s3Client)
+  
+    res.status(200).json({uploadURL:url})
+  }
+    catch(err) {
+      console.error("AWS signed URL error:",err.message);
+      return res.status(500).json({error:err.message})
+    
+  }
+})
 
 server.post("/signup", (req, res) => {
   let {fullname, email, password} = req.body
@@ -121,45 +159,52 @@ server.post("/signin", async (req, res) => {
       })
     })
     .catch((err) => {
-      console.log(err)
       return res.status(500).json({error: err.message})
     })
 })
 
 server.post("/google-auth", async (req, res) => {
-  let { access_token } = req.body;
-  console.log(access_token);
-  
+ 
+  let { idToken } = req.body;
+
+  if (!idToken) {
+    return res.status(400).json({ error: "Missing idToken" });
+  }
+
   admin.auth()
-    .verifyIdToken(access_token)
+    .verifyIdToken(idToken)
     .then(async (decodedUser) => {
 
       let { email, name, picture } = decodedUser;
+
       picture = picture.replace("s96-c", "s384-c")
       let user = await User.findOne({ "personal_info.email": email }).select("personal_info.fullname personal_info.username personal_info.profile_img google_auth")
-        .then((u) =>{
+        .then((u) => {  
           return u || null
         })
         .catch((err) => {
         return res.status(500).json({error:err.message})
       })
       
-
       if (user) {
         if (!user.google_auth) {
           return res.status(500).json({
-            error: "This email was signed up without google. Please log in with password to access account!"
+            "error": "This email was signed up without google. Please log in with password to access account!"
             
           })
 
         }
       } else {
+        
         let username = await generateUsername(email);
         user = new User({
           personal_info: { fullname: name, email, profile_img: picture, username },
           google_auth: true
         });
-        await user.save().then(u => user = u)
+        await user.save().then(u => {
+          user = u
+
+        })
   .catch(err=> res.status(500).json({error:err.message}))
       }
 

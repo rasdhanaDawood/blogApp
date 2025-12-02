@@ -7,8 +7,7 @@ import { removeFromSession } from "../common/session"
 const UserNavigationPanel = ({type}) => {
 
     const { userAuth,userAuth: { }, setUserAuth } = useContext(UserContext);
-    const {username}=userAuth
-    console.log({ username });    
+    const {username}=userAuth   
     
     const signOutUser = () => {
         removeFromSession("user");

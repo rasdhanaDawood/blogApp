@@ -20,7 +20,10 @@ const auth = getAuth(app);
 export const authWithGoogle = async () => {
     try {
         const result = await signInWithPopup(auth, provider);
-        return result.user;
+        const user = result.user;
+        // Get Firebase ID token to send to server for verification
+        const idToken = await user.getIdToken();
+        return { user, idToken };
     } catch (err) {
         console.error("Google sign-in error:", err);
         return null;
