@@ -13,7 +13,6 @@ const serviceAccountKey = require("./mern-blog-website-15a5d-firebase-adminsdk-f
 import User from "./Schema/User.js"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
-
 const server = express()
 let port = 3000
 
@@ -44,17 +43,15 @@ const s3Client = new S3Client({
 
 const generateUploadURL = async (s3Client) => {
 
-  const date = new Date();
-  const imageName = `${nanoid()}-${date.getTime()}.jpeg`
+  const imageName = `${nanoid()}-${Date.now()}.jpeg`
 
   const command = new PutObjectCommand({
-     Bucket: 'mernblog-website',
+    Bucket: process.env.S3_BUCKET_NAME,
     Key: imageName,
-    ContentType: "image/jpeg",
   })
-  
+
   return await getSignedUrl(s3Client,command, {
-    expiresIn: 1000
+    expiresIn: 3600,
   })
 
 }
@@ -79,18 +76,17 @@ const generateUsername = async (email) => {
   return username
 }
 
-server.get('/get-upload-url',async (req, res) => {
+server.get('/get-upload-url', async (req, res) => {
   try {
     const url = await generateUploadURL(s3Client)
   
-    res.status(200).json({uploadURL:url})
+    res.status(200).json({ uploadURL: url })
   }
-    catch(err) {
-      console.error("AWS signed URL error:",err.message);
-      return res.status(500).json({error:err.message})
-    
+  catch (err) {
+    console.error("AWS signed URL error:", err.message);
+    return res.status(500).json({ error: err.message })
   }
-})
+});
 
 server.post("/signup", (req, res) => {
   let {fullname, email, password} = req.body
@@ -218,4 +214,5 @@ server.post("/google-auth", async (req, res) => {
 
 server.listen(port, () => {
   console.log("Listening on port " + port)
+  
 })

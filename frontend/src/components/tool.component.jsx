@@ -7,40 +7,18 @@ import Marker from "@editorjs/marker"
 import InlineCode from "@editorjs/inline-code"
 import { uploadImage } from "../common/aws"
 
-// const uploadImageByFile = (e) => {
-
-//     return uploadImage(e).then(url => {
-//         if (url) {
-//             const result= {
-//                 success: 1,
-//                 file:{url}
-//             }
-//             console.log(result);
-            
-//         }
-//     }).catch(err=>console.error(err.message))
-// }
-
 const uploadImageByFile = (file) => {
   return uploadImage(file)
     .then((url) => {
-      if (!url) {
-        // Explicit failure format
-        return { success: 0 };
-      }
-        return { success: 1, file: { url:url } };
-
-    //   return {
-    //     success: 1,
-    //     file: { url: typeof url === "string" ? url : url.url },
-    //   };
+      if (url) {
+        return { success: 1, file: { "url":url } };
+        }
     })
     .catch((err) => {
       console.error("uploadImageByFile error", err);
       return { success: 0 };
     });
 };
-
 
 const uploadImageByURL = (e) => {
 
@@ -52,10 +30,10 @@ const uploadImageByURL = (e) => {
             reject(err)
         }
     })
-    return link.then(url => {
+    return link.then(imageURL => {
         return {
             success: 1,
-            file:{url}
+            file:{"url":imageURL}
         }
     })
     
@@ -66,7 +44,6 @@ export const tools = {
     list: {
         class: List,
         inlineToolbar: true,
-        
     },
     image: {
         class: Image,

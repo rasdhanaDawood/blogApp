@@ -5,22 +5,20 @@ export const uploadImage =async (img) => {
         let imgUrl = null;
         const { data: { uploadURL } } = await axios.get(import.meta.env.VITE_SERVER_DOMAIN + "/get-upload-url")
         
-        console.log(img.type)
-        axios({
+        await axios({
             method: 'PUT',
             url: uploadURL,
             headers: {
-                "Content-Type": img.type
+                "Content-Type": img.type,
             },
-            data: img
+            data: img,
         })
-            
+           
         imgUrl = uploadURL.split("?")[0]
-        
         return imgUrl
     }
     catch (err) {
         console.log(err.message)
     }
 
-    }
+}
