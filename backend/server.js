@@ -50,7 +50,7 @@ const generateUploadURL = async (s3Client) => {
   const command = new PutObjectCommand({
      Bucket: 'mernblog-website',
     Key: imageName,
-    ContentType: "image/jpeg"
+    ContentType: "image/jpeg",
   })
   
   return await getSignedUrl(s3Client,command, {

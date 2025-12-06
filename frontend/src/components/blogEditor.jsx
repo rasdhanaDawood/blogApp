@@ -3,30 +3,40 @@ import logo from "../images/R-logo.svg"
 import AnimationWrapper from "../common/animation";
 import defaultBanner from "../images/blogBanner.png"
 import { uploadImage } from "../common/aws";
-import { useRef } from "react";
 import toast, { Toaster } from "react-hot-toast";
-import { useState } from "react";
-
+import { useContext, useEffect } from "react";
+import { EditorContext } from "../pages/editor";
+import EditorJS from "@editorjs/editorjs";
+import { tools } from "./tool.component";
 
 const BlogEditor = () => {
-    // let blogBannerRef = useRef()
 
-    let [blogBanner, setBlogBanner] = useState(defaultBanner);
-    
+    let {blog, blog:{title,banner,content,tags,desc},setBlog } = useContext(EditorContext);
 
+    useEffect(() => {
+        let editor = new EditorJS({
+            holder:"textEditor",
+            data: "",
+            tools: tools,
+            placeholder:"Lets write something Interesting"
+            
+        })
+        console.log(editor);
+        
+    },[])
     const handleBannerUpload = (e) => {
         let img = e.target.files[0];
         
         if (img) {
-
             let loadingToast=toast.loading("Uploading...")
             uploadImage(img).then(url => {
                  
                 if (url) {
                     toast.dismiss(loadingToast);
                     toast.success("Uploaded successfully!")
-                    setBlogBanner(url)
-                    console.log(url);
+                    console.log("url: " + url);             
+                    setBlog({ ...blog, banner: url });
+
                 }
             })
                 .catch(err => {
@@ -34,15 +44,32 @@ const BlogEditor = () => {
                     return toast.error(err)
                 })
         }
-
     }
+
+    const handleTitleKeyDown = (e) => {
+              
+        if (e.keyCode == 13) {
+            e.preventDefault();
+        }
+    }
+
+    const handleTitleChange = (e) => {
+    
+        let input = e.target;
+        input.style.height = 'auto';
+        input.style.height = input.scrollHeight + "px";
+        setBlog({ ...blog, title: input.value });
+        
+    }
+    
     return (
         <>
         <nav className="navbar">
             <Link to="/" className="flex-none w-10">
                 <img src={logo} /></Link>
-            <p className="max-md:hidden text-black line-clamp-1 w-full">
-                New Blog
+                <p className="max-md:hidden text-black line-clamp-1 w-full">
+                    { title.length? title: "New Blog" }
+                
             </p>
             <div className="flex gap-4 ml-auto">
                 <button className="btn-black py-2">
@@ -56,15 +83,22 @@ const BlogEditor = () => {
             </nav>
             <Toaster/>
             <AnimationWrapper>
-                <div className="mx-auto max-w-[900px] w-full">
+                <section>
+                    <div className="mx-auto max-w-[900px] w-full">
                     <div className="relative aspect-video hover:opacity-80 bg-white border-4 border-gray-200">
                         <label htmlFor="uploadBanner">
-                            <img src={blogBanner} alt="blog banner" />
+                            <img src={blog.banner} alt="blog banner" className="z-20"/>
                             <input id="uploadBanner" type="file" accept=".png,.jpg,.jpeg" hidden onChange={handleBannerUpload} />
                         </label>
 
-                    </div>
+                        </div>
+                        <textarea placeholder="Blog Title" className="text-4xl font-medium w-full h-20 outline-none mt-10 leading-tight placeholder:opacity-40" onKeyDown={handleTitleKeyDown} onChange={handleTitleChange}>
+                            
+                        </textarea>
+                        <hr className="w-full opacity-10 my-5" />
+                        <div id="textEditor" className="font-gelasio"></div>
                 </div>
+                </section>
             </AnimationWrapper>
         </>
     )
