@@ -11,16 +11,17 @@ import { tools } from "./tool.component";
 
 const BlogEditor = () => {
 
-    let {blog, blog:{title,banner,content,tags,desc},setBlog } = useContext(EditorContext);
+    let {blog, blog:{title,banner,content,tags,desc},setBlog,textEditor, setTextEditor,setEditorState } = useContext(EditorContext);
+console.log(banner);
 
     useEffect(() => {
-        let editor = new EditorJS({
+        setTextEditor(new EditorJS({
             holder:"textEditor",
             data: "",
             tools: tools,
             placeholder:"Lets write something Interesting"
             
-        })
+        }))
        
     },[])
     const handleBannerUpload = (e) => {
@@ -60,6 +61,30 @@ const BlogEditor = () => {
         setBlog({ ...blog, title: input.value });
         
     }
+
+    const handlePublishEvent = () => {
+        if (!banner) {
+            return toast.error("Upload a blog banner to publish")
+        }
+        
+        if (!title.length) {
+            return toast.error("Add a title to the blog")
+        }
+
+        if (textEditor.isReady) {
+            textEditor.save().then(data => {
+                if (data.blocks.length) {
+                    setBlog({ ...blog, content: data })
+                    setEditorState("publish")
+                }
+                else {
+                    return toast.error("Write something in your blog to publish it");
+                }
+                
+            })
+        }
+
+    }
     
     return (
         <>
@@ -70,10 +95,10 @@ const BlogEditor = () => {
                     { title.length? title: "New Blog" }
             </p>
             <div className="flex gap-4 ml-auto">
-                <button className="btn-black py-2">
+                <button className="btn-dark py-2" onClick={handlePublishEvent}>
                     Publish
                 </button>
-                <button className="btn-black py-2">
+                <button className="btn-light py-2">
                     Save Draft
                 </button> 
             </div>
@@ -81,17 +106,18 @@ const BlogEditor = () => {
             <Toaster/>
             <AnimationWrapper>
                 <section>
-                    <div className="mx-auto max-w-[900px] w-full">
+                <div className="mx-auto max-w-[900px] w-full">
                     <div className="relative aspect-video hover:opacity-80 bg-white border-4 border-gray-200">
                         <label htmlFor="uploadBanner">
                             <img src={blog.banner} alt="blog banner" className="z-20"/>
                             <input id="uploadBanner" type="file" accept=".png,.jpg,.jpeg" hidden onChange={handleBannerUpload} />
                         </label>
-                        </div>
-                        <textarea placeholder="Blog Title" className="text-4xl font-medium w-full h-20 outline-none mt-10 leading-tight placeholder:opacity-40" onKeyDown={handleTitleKeyDown} onChange={handleTitleChange}>
-                        </textarea>
-                        <hr className="w-full opacity-10 my-5" />
-                        <div id="textEditor" className="font-gelasio"></div>
+                    </div>
+                    <textarea placeholder="Blog Title" className="text-4xl font-medium w-full h-20 outline-none mt-10 leading-tight placeholder:opacity-40" onKeyDown={handleTitleKeyDown} onChange={handleTitleChange}>
+                    </textarea>
+                    <hr className="w-full opacity-10 my-5" />
+                    <div id="textEditor" className="font-gelasio">
+                    </div>
                 </div>
                 </section>
             </AnimationWrapper>

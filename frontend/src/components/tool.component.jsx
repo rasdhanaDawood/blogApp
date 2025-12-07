@@ -11,7 +11,7 @@ const uploadImageByFile = (file) => {
   return uploadImage(file)
     .then((url) => {
       if (url) {
-        return { success: 1, file: { "url":url } };
+        return { success: 1, file: { url } };
         }
     })
     .catch((err) => {
@@ -30,10 +30,10 @@ const uploadImageByURL = (e) => {
             reject(err)
         }
     })
-    return link.then(imageURL => {
+    return link.then(url => {
         return {
             success: 1,
-            file:{"url":imageURL}
+            file:{url}
         }
     })
     

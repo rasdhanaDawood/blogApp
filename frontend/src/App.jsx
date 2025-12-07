@@ -7,6 +7,7 @@ import UserProfilePage from "./pages/userProfilePage"
 import Blogs from "./pages/blogs"
 import Editor from "./pages/editor"
 import Navbar from "./components/Navbar"
+import PublishForm from "./components/publishForm"
 
 export const UserContext = createContext({})
 
@@ -26,6 +27,8 @@ function App() {
     <UserContext.Provider value={{userAuth, setUserAuth}}>
       <Routes> 
         <Route path="/editor" element={<Editor />} />
+        <Route path="/publish" element={<PublishForm />} />
+
         <Route path="user/:username" element={<UserProfilePage />} />
           <Route path="dashboard/blogs" element={<Blogs />} />
         <Route path="/" element={<Navbar />}>
