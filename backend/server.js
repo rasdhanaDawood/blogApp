@@ -24,7 +24,11 @@ let emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 let passwordRegex = /^(?=.*\d)(?=.*\W)(?=.*[a-zA-Z])(?!.*\s).{8,}$/
 
 server.use(express.json())
-server.use(cors())
+server.use(cors(
+  {
+    origin:process.env.FRONTEND_DOMAIN
+  }
+))
 
 mongoose
   .connect(process.env.DB_LOCATION, {

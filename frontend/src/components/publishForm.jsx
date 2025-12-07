@@ -1,12 +1,20 @@
 import { Toaster } from "react-hot-toast"
 import AnimationWrapper from "../common/animation"
+import { useContext } from "react"
+import { EditorContext } from "../pages/editor"
 
 const PublishForm = () => {
+
+    let {setEditorState } = useContext(EditorContext);
+
+    const handleCloseEvent = () => {
+        setEditorState("editor");
+    }
     return (
         <AnimationWrapper>
             <section>
                 <Toaster />
-                <button className="w-12 h-12 absolute right-[5vw] z-10 top-[5%] lg:top-[10%]">
+                <button className="w-12 h-12 absolute right-[5vw] z-10 top-[5%] lg:top-[10%]" onClick={handleCloseEvent}>
                     <i className="fi fi-br-cross"></i>
                 </button>
             </section>
