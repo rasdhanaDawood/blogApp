@@ -184,18 +184,21 @@ server.post("/google-auth", async (req, res) => {
   try {
   
     let { idToken } = req.body;
+console.log(req.body);
 
     if (!idToken) {
       return res.status(400).json({ error: "Missing idToken" });
     }
 
-    let decodedUser = admin.auth()
+    let decodedUser = await admin.auth()
       .verifyIdToken(idToken)
+   console.log(decodedUser);
    
     let { email, name, picture } = decodedUser;
 
     picture = picture.replace("s96-c", "s384-c")
     let user = await User.findOne({ "personal_info.email": email }).select("personal_info.fullname personal_info.username personal_info.profile_img google_auth")
+      console.log(user);
       
     if (user) {
         
@@ -215,9 +218,9 @@ server.post("/google-auth", async (req, res) => {
       });
       user = await user.save()
 
-      return res.status(200).json(formatDatatoSend(user))
-    
     }
+    return res.status(200).json(formatDatatoSend(user))
+
   }
   catch (err) {
     res.status(500).json({ error: "Failed to authenticate you with Google.Try with some other google account" })
@@ -226,7 +229,7 @@ server.post("/google-auth", async (req, res) => {
 
 
 server.post('/create-blog', verifyJWT, async (req, res) => {
-  
+
   try {
     let authorId = req.user;
 
