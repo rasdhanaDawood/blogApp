@@ -11,17 +11,22 @@ import { authWithGoogle } from "../common/firebase"
 import { API } from "../common/api"
 
 const UserAuthForm = ({type}) => {
+console.log(type);
 
   let {
     userAuth: {access_token},
     setUserAuth
   } = useContext(UserContext)  
+console.log("access_token",access_token);
 
   const userAuthThroughServer = (serverRoute, formData) => {
-
+    console.log(serverRoute, formData);
+    
     axios
       .post(`${API}${serverRoute}`, formData)
       .then(({ data }) => {
+        console.log("data",data);
+        
         storeInSession("user", JSON.stringify(data))
        
         setUserAuth(data)
@@ -66,10 +71,11 @@ const UserAuthForm = ({type}) => {
     userAuthThroughServer(serverRoute, formData);
 
   }
-  const handleGoogleAuth = (e) => {
-    e.preventDefault()
+  const handleGoogleAuth = async (e) => {
+    try {
+      e.preventDefault()
 
-    authWithGoogle().then(result => {
+    let result = await authWithGoogle()
     
       if (!result || !result.idToken) {
         toast.error('Failed to get Firebase ID token');
@@ -81,12 +87,14 @@ const UserAuthForm = ({type}) => {
         idToken: result.idToken
       }
       userAuthThroughServer(serverRoute, formData)
-    })
-      .catch((err => {
+    }
+    
+    
+      catch(err){
         toast.error('Trouble login through google');
         return console.log(err);
         
-      }))
+      }
   }
   
   return (
