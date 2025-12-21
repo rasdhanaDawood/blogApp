@@ -12,6 +12,7 @@ const require = createRequire(import.meta.url)
 const serviceAccountKey = require("./mern-blog-website-15a5d-firebase-adminsdk-fbsvc-a5be881341.json")
 import User from "./Schema/User.js"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
+import Blog from "./Schema/Blog.js"
 
 const server = express()
 let port = 3000
@@ -23,12 +24,12 @@ admin.initializeApp({
 let emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 let passwordRegex = /^(?=.*\d)(?=.*\W)(?=.*[a-zA-Z])(?!.*\s).{8,}$/
 
+const hashPassword = (password) => {
+  return bcrypt.hash(password, 10)
+}
+
 server.use(express.json())
-server.use(cors(
-  {
-    origin:process.env.FRONTEND_DOMAIN
-  }
-))
+server.use(cors())
 
 mongoose
   .connect(process.env.DB_LOCATION, {
@@ -59,6 +60,24 @@ const generateUploadURL = async (s3Client) => {
   })
 
 }
+
+const verifyJWT = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(" ")[1];
+  if (token == null) {
+    return res.status(401).json({ error: "No access token" });
+  }
+
+  jwt.verify(token, process.env.SECRET_ACCESS_KEY, (err, user) => {
+    if (err) {
+      return res.status(405).json({ error: "Access token is invalid" });
+    }
+
+    req.user = user.id;
+    next();
+  })
+  
+}
 const formatDatatoSend = (user) => {
   const access_token = jwt.sign({id: user._id}, process.env.SECRET_ACCESS_KEY)
 
@@ -75,7 +94,7 @@ const generateUsername = async (email) => {
 
   let isUsernameNotUnique = await User.exists({
     "personal_info.username": username,
-  }).then((result) => result)
+  })
   isUsernameNotUnique ? (username += nanoid().substring(0, 5)) : ""
   return username
 }
@@ -87,13 +106,13 @@ server.get('/get-upload-url', async (req, res) => {
     res.status(200).json({ uploadURL: url })
   }
   catch (err) {
-    console.error("AWS signed URL error:", err.message);
     return res.status(500).json({ error: err.message })
   }
 });
 
-server.post("/signup", (req, res) => {
-  let {fullname, email, password} = req.body
+server.post("/signup", async(req, res) => {
+  try {
+    let { fullname, email, password } = req.body
 
   if (fullname.length < 3)
     return res
@@ -117,103 +136,151 @@ server.post("/signup", (req, res) => {
         "Password should have minimum 8 characters. A number, 1 special character, a letter. No spaces allowed.",
     })
 
-  bcrypt.hash(password, 10, async (err, hashed_password) => {
+    let hashed_password = await hashPassword(password)
     let username = await generateUsername(email)
 
     let user = new User({
       personal_info: {fullname, email, password: hashed_password, username},
     })
-
-    user
-      .save()
-      .then((u) => {
-        return res.status(200).json(formatDatatoSend(u))
-      })
-      .catch((err) => {
-        if (err.code == 11000) {
+    const savedUser = await user.save()
+    
+        return res.status(200).json(formatDatatoSend(savedUser))
+    
+  }
+  catch (err) {
+     if (err.code == 11000) {
           return res.status(500).json({error: "Email already exists!"})
         }
         return res.status(500).json({error: err.message})
-      })
-  })
+  }
+
 })
 
 server.post("/signin", async (req, res) => {
-  let {email, password} = req.body
-  await User.findOne({"personal_info.email": email})
-    .then((user) => {
-      if (!user) return res.status(403).json({error: "Email not found"})
+  try {
+    let { email, password } = req.body
+    let user = await User.findOne({ "personal_info.email": email })
+    if (!user) return res.status(403).json({ error: "Email not found" })
 
-      bcrypt.compare(password, user.personal_info.password, (err, result) => {
-        if (err) {
-          return res
-            .status(403)
-            .json({error: "Error occur while login, Please try again!"})
-        }
+    bcrypt.compare(password, user.personal_info.password, (err, result) => {
+      if (err) {
+        return res
+          .status(403)
+          .json({ error: "Error occur while login, Please try again!" })
+      }
 
-        if (!result) {
-          return res.status(403).json({error: "Incorrect password!"})
-        } else {
-          return res.status(200).json(formatDatatoSend(user))
-        }
-      })
+      if (!result) {
+        return res.status(403).json({ error: "Incorrect password!" })
+      } else {
+        return res.status(200).json(formatDatatoSend(user))
+      }
     })
-    .catch((err) => {
-      return res.status(500).json({error: err.message})
-    })
+  } catch (err) {
+    return res.status(500).json({ error: err.message })
+  }
 })
 
 server.post("/google-auth", async (req, res) => {
- 
-  let { idToken } = req.body;
+  try {
+  
+    let { idToken } = req.body;
 
-  if (!idToken) {
-    return res.status(400).json({ error: "Missing idToken" });
-  }
+    if (!idToken) {
+      return res.status(400).json({ error: "Missing idToken" });
+    }
 
-  admin.auth()
-    .verifyIdToken(idToken)
-    .then(async (decodedUser) => {
+    let decodedUser = admin.auth()
+      .verifyIdToken(idToken)
+   
+    let { email, name, picture } = decodedUser;
 
-      let { email, name, picture } = decodedUser;
-
-      picture = picture.replace("s96-c", "s384-c")
-      let user = await User.findOne({ "personal_info.email": email }).select("personal_info.fullname personal_info.username personal_info.profile_img google_auth")
-        .then((u) => {  
-          return u || null
-        })
-        .catch((err) => {
-        return res.status(500).json({error:err.message})
-      })
+    picture = picture.replace("s96-c", "s384-c")
+    let user = await User.findOne({ "personal_info.email": email }).select("personal_info.fullname personal_info.username personal_info.profile_img google_auth")
       
-      if (user) {
-        if (!user.google_auth) {
-          return res.status(500).json({
-            "error": "This email was signed up without google. Please log in with password to access account!"
-            
-          })
-
-        }
-      } else {
+    if (user) {
         
-        let username = await generateUsername(email);
-        user = new User({
-          personal_info: { fullname: name, email, profile_img: picture, username },
-          google_auth: true
-        });
-        await user.save().then(u => {
-          user = u
-
+      if (!user.google_auth) {
+        return res.status(500).json({
+          "error": "This email was signed up without google. Please log in with password to access account!"
+            
         })
-  .catch(err=> res.status(500).json({error:err.message}))
+
       }
+    } else {
+        
+      let username = await generateUsername(email);
+      user = new User({
+        personal_info: { fullname: name, email, profile_img: picture, username },
+        google_auth: true
+      });
+      user = await user.save()
 
       return res.status(200).json(formatDatatoSend(user))
     
-    })
-    .catch(err => res.status(500).json({ error: "Failed to authenticate you with Google.Try with some other google account" })
-  )
+    }
+  }
+  catch (err) {
+    res.status(500).json({ error: "Failed to authenticate you with Google.Try with some other google account" })
+  }
+})
+
+
+server.post('/create-blog', verifyJWT, async (req, res) => {
   
+  try {
+    let authorId = req.user;
+
+    let { title, banner, content, tags, desc, drafts } = req.body;
+ 
+    if (!title.length) {
+      return res.status(403).json({ error: "You must provide a title" });
+    
+    }
+
+    if (!drafts) {
+
+      if (!desc || !desc.length || desc.length > 200) {
+        return res.status(403).json({ error: "You must provide blog description under 200 characters" });
+    
+      }
+
+      if (!banner.length) {
+        return res.status(403).json({ error: "You must provide a banner to publish it" });
+    
+      }
+
+      if (!content.blocks.length) {
+        return res.status(403).json({ error: "There must be some blog content to publish it" });
+    
+      }
+      if (!tags.length || tags.length > 10) {
+        return res.status(403).json({ error: "Provide tags in order to publish the blog, Maximum 10 tags" });
+    
+      }
+    
+    }
+
+    tags = tags.map(tag => tag.toLowerCase());
+
+    let blog_id = title.replace(/[^a-zA-Z0-9]/g, ' ').replace(/\s+/g, "-").trim() + nanoid();
+  
+    let blog = new Blog({ title, banner, desc, content, tags, author: authorId, blog_id, drafts: Boolean(drafts) });
+  
+    blog.save()
+    let incrementVal = drafts ? 0 : 1;
+    let user = await User.findOneAndUpdate({ _id: authorId }, { $inc: { "account_info.total_posts": incrementVal }, $push: { "blogs": blog._id } })
+    if (user) {
+      return res.status(200).json({ id: blog.blog_id })
+        
+    } else {
+      return res.status(500).json({ error: "Failed to update total posts number" })
+
+    }
+    
+  }
+  catch (err) {
+    return res.status(500).json({ error: err.message })
+  }
 })
 
 server.listen(port, () => {

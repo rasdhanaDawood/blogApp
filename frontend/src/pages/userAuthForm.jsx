@@ -8,6 +8,7 @@ import {useContext} from "react"
 import {storeInSession} from "../common/session"
 import {UserContext} from "../App"
 import { authWithGoogle } from "../common/firebase"
+import { API } from "../common/api"
 
 const UserAuthForm = ({type}) => {
 
@@ -17,15 +18,17 @@ const UserAuthForm = ({type}) => {
   } = useContext(UserContext)  
 
   const userAuthThroughServer = (serverRoute, formData) => {
-    
+
     axios
-      .post(import.meta.env.VITE_SERVER_DOMAIN + serverRoute, formData)
+      .post(`${API}${serverRoute}`, formData)
       .then(({ data }) => {
         storeInSession("user", JSON.stringify(data))
+       
         setUserAuth(data)
       })
       .catch(err => {
-        toast.error(err.response.data);
+        toast.error(err.response.data.error);
+       
       })
   }
 
@@ -64,8 +67,10 @@ const UserAuthForm = ({type}) => {
 
   }
   const handleGoogleAuth = (e) => {
-      e.preventDefault()
+    e.preventDefault()
+
     authWithGoogle().then(result => {
+    
       if (!result || !result.idToken) {
         toast.error('Failed to get Firebase ID token');
         return;
@@ -75,7 +80,6 @@ const UserAuthForm = ({type}) => {
       let formData = {
         idToken: result.idToken
       }
-
       userAuthThroughServer(serverRoute, formData)
     })
       .catch((err => {

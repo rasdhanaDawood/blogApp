@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { GoogleAuthProvider, getAuth, signInWithPopup } from 'firebase/auth'
+import { GoogleAuthProvider, getAuth, signInWithPopup, signInWithRedirect } from 'firebase/auth'
 
 const firebaseConfig = {
   apiKey: "AIzaSyDZygT5wcdtQx9_fAG-WqhmWphiqq7OjmM",
@@ -20,8 +20,8 @@ const auth = getAuth(app);
 export const authWithGoogle = async () => {
     try {
         const result = await signInWithPopup(auth, provider);
+
         const user = result.user;
-        // Get Firebase ID token to send to server for verification
         const idToken = await user.getIdToken();
         return { user, idToken };
     } catch (err) {
@@ -29,4 +29,3 @@ export const authWithGoogle = async () => {
         return null;
     }
 }
-
