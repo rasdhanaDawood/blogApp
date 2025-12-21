@@ -20,7 +20,8 @@ console.log(type);
 console.log("access_token",access_token);
 
   const userAuthThroughServer = (serverRoute, formData) => {
-    console.log(serverRoute, formData);
+   
+    console.log(API);
     
     axios
       .post(`${API}${serverRoute}`, formData)
