@@ -11,22 +11,17 @@ import { authWithGoogle } from "../common/firebase"
 import { API } from "../common/api"
 
 const UserAuthForm = ({type}) => {
-console.log(type);
 
   let {
     userAuth: {access_token},
     setUserAuth
   } = useContext(UserContext)  
-console.log("access_token",access_token);
 
   const userAuthThroughServer = (serverRoute, formData) => {
    
-    console.log(API);
-    
     axios
       .post(`${API}${serverRoute}`, formData)
       .then(({ data }) => {
-        console.log("data",data);
         
         storeInSession("user", JSON.stringify(data))
        

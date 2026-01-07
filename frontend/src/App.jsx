@@ -8,6 +8,7 @@ import Blogs from "./pages/blogs"
 import Editor from "./pages/editor"
 import Navbar from "./components/Navbar"
 import PublishForm from "./components/publishForm"
+import HomePage from "./pages/Home"
 
 export const UserContext = createContext({})
 
@@ -32,6 +33,7 @@ function App() {
         <Route path="user/:username" element={<UserProfilePage />} />
           <Route path="dashboard/blogs" element={<Blogs />} />
         <Route path="/" element={<Navbar />}>
+        <Route index element={<HomePage />} />
           <Route path="signin" element={<UserAuthForm type="sign-in" />} />
           <Route path="signup" element={<UserAuthForm type="sign-up" />} />
           

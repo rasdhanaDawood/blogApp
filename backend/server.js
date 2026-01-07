@@ -6,10 +6,10 @@ import bcrypt from "bcrypt"
 import {nanoid} from "nanoid"
 import jwt from "jsonwebtoken"
 import admin from "firebase-admin"
-import { createRequire } from "module"
+// import { createRequire } from "module"
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
-const require = createRequire(import.meta.url)
-const serviceAccountKey = require("./mern-blog-website-15a5d-firebase-adminsdk-fbsvc-a5be881341.json")
+// const require = createRequire(import.meta.url)
+// const serviceAccountKey = require("./mern-blog-website-15a5d-firebase-adminsdk-fbsvc-a5be881341.json")
 import User from "./Schema/User.js"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import Blog from "./Schema/Blog.js"
@@ -18,8 +18,13 @@ const server = express()
 let port = 3000
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccountKey)
-})
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+  }),
+});
+
 
 let emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 let passwordRegex = /^(?=.*\d)(?=.*\W)(?=.*[a-zA-Z])(?!.*\s).{8,}$/
@@ -184,7 +189,6 @@ server.post("/google-auth", async (req, res) => {
   try {
   
     let { idToken } = req.body;
-console.log(req.body);
 
     if (!idToken) {
       return res.status(400).json({ error: "Missing idToken" });
@@ -192,14 +196,12 @@ console.log(req.body);
 
     let decodedUser = await admin.auth()
       .verifyIdToken(idToken)
-   console.log(decodedUser);
    
     let { email, name, picture } = decodedUser;
 
     picture = picture.replace("s96-c", "s384-c")
     let user = await User.findOne({ "personal_info.email": email }).select("personal_info.fullname personal_info.username personal_info.profile_img google_auth")
-      console.log(user);
-      
+    
     if (user) {
         
       if (!user.google_auth) {
