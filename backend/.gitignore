@@ -11,3 +11,7 @@ build/
 # Logs and system files
 npm-debug.log*
 .DS_Store
+
+# Firebase Admin SDK
+*.json
+firebase-adminsdk-*.json

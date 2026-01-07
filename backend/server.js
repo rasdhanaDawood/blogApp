@@ -227,6 +227,78 @@ console.log(req.body);
   }
 })
 
+server.post('/latest-blogs', async (req, res) => {
+  try {
+    let { page } = req.body.page
+    let maxLimit = 5
+    let blogs = await Blog.find({ drafts: false })
+    .populate("author", "personal_info.profile_img personal_info.username personal_info.fullname -_id")
+    .sort({ "publishedAt": -1 })
+    .select("blog_id title desc banner activity tags publishedAt -_id")
+    .skip((page - 1) * maxLimit)
+      .limit(maxLimit)  
+    
+    return res.status(200).json({blogs})
+  }
+  catch (err) {
+    return res.status(500).json({error:err.message})
+  }
+})
+
+server.post("/all-latest-blogs-count", async (req, res) => {
+  try {
+    let count = await Blog.countDocuments({ drafts: false });
+    return res.status(200).json({ totalDocs: count });
+  }
+  catch (err) {
+    console.log(err.message);
+    return res.status(500).json({error: err.message});
+  }
+})
+server.get('/trending-blogs', async (req, res) => {
+  try {
+    let blogs = await Blog.find({ drafts: false })
+    .populate("author", "personal_info.profile_img personal_info.username personal_info.fullname -_id")
+    .sort({ "activity.total_reads": -1, "activity.total_likes": -1, "publishedAt": -1 })
+    .select("blog_id title publishedAt -_id")
+      .limit(5)
+    
+    if(blogs) {
+        return res.status(200).json({blogs})
+    }
+    else {
+              return res.status(500).json({error:"No blogs data"})
+
+    }
+  }
+  catch (err) {
+    console.log(err);
+    return res.status(500).json({ error: err.message })
+
+    
+  }
+
+})
+
+server.post('/search-blogs', async (req, res) => {
+  try {
+    let { tag } = req.body;
+   
+    let findQuery = { tags: tag, drafts: false };
+    let maxLimit = 5;
+    let blogs = await Blog.find(findQuery)
+      .populate("author", "personal_info.profile_img personal_info.username personal_info.fullname -_id")
+      .sort({ "publishedAt": -1 })
+      .select("blog_id title desc banner activity tags publishedAt -_id")
+      .limit(maxLimit)
+   
+    return res.status(200).json({blogs})
+
+  }
+  catch (err) {
+    return res.status(500).json({error:err.message})
+  }
+})
 
 server.post('/create-blog', verifyJWT, async (req, res) => {
 

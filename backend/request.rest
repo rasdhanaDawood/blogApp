@@ -1,13 +1,6 @@
-POST http://localhost:3000/create-blog
+POST http://localhost:3000/search-blogs
 Content-Type:application/json
-Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MjZhMmQxODI0YzQwMTA3M2UzMWNlYyIsImlhdCI6MTc2NTU1NDU4OH0.6txWhnlgx9UQVTUKDuhs3n-hGN58ZlxIMTtisUUh3e4
 
 {
-    "title":"title of blog",
-    "banner":"https://example.com/image", 
-    "content":{
-        "blocks":["content area","hello"]
-        }, 
-    "tags":["tag1","tag2"], 
-    "desc":"hi this is description"
-}
+    "tag":"travel"
+} 
