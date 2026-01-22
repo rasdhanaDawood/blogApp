@@ -37,12 +37,20 @@ const HomePage = () => {
         }       
     }
 
-    const fetchBlogsByCategory = async () => {
+    const fetchBlogsByCategory = async ({ page = 1 }) => {
         try {
-            let data = await axios.post(`${API}/search-blogs`,{ tag : pageState })
-            console.log(data.data.blogs);
+            let data = await axios.post(`${API}/search-blogs`,{ tag : pageState, page })
+         
+            let formatedData = await filterPaginationData({
+                state: blogs,
+                data: data.data.blogs,
+                page,
+                countRoute: "/search-blogs-count",
+                data_to_send:{ tag: pageState }
+            })
+            console.log(formatedData);
             
-            setBlogs(data.data.blogs)
+            setBlogs(formatedData);
         } catch (err) {
             console.log(err);
             
@@ -79,10 +87,10 @@ const HomePage = () => {
         activeTabRef.current.click();
 
         if (pageState == "home") {
-            fetchLatestBlogs({page: 1});
+            fetchLatestBlogs({ page: 1 });
             
         } else {
-            fetchBlogsByCategory()
+            fetchBlogsByCategory({ page: 1 })
         }
         if (!trendingBlogs) {
             fetchTrendingBlogs();
@@ -111,15 +119,13 @@ const HomePage = () => {
                                                     delay: i * .1
                                                 }}
                                         >
-                                            
-                                            
-                                            <BlogPostCard content={ blog } author={ blog.author.personal_info} />
+                                        <BlogPostCard categoryTag={ pageState } content={ blog } author={ blog.author.personal_info} />
                                         </AnimationWrapper>
                                         })
                                             :<NoDataMessage message="No blogs published"/>
                                     )
                             } 
-                        <LoadMoreDataBtn state={blogs} fetchDataFunc={fetchLatestBlogs}/>
+                        <LoadMoreDataBtn state={blogs} fetchDataFunc={(pageState == 'home' ? fetchLatestBlogs : fetchBlogsByCategory)}/>
                             
                         </>
                         {

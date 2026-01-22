@@ -6,9 +6,11 @@ import {lookInSession} from "./common/session"
 import UserProfilePage from "./pages/userProfilePage"
 import Blogs from "./pages/blogs"
 import Editor from "./pages/editor"
-import Navbar from "./components/Navbar"
+import Navbar from "./components/navbar"
 import PublishForm from "./components/publishForm"
 import HomePage from "./pages/Home"
+import SearchPage from "./pages/searchPage"
+import PageNotFound from "./pages/404page"
 
 export const UserContext = createContext({})
 
@@ -28,15 +30,14 @@ function App() {
     <UserContext.Provider value={{userAuth, setUserAuth}}>
       <Routes> 
         <Route path="/editor" element={<Editor />} />
-        <Route path="/publish" element={<PublishForm />} />
-
-        <Route path="user/:username" element={<UserProfilePage />} />
-          <Route path="dashboard/blogs" element={<Blogs />} />
+        <Route path="dashboard/blogs" element={<Blogs />} />
         <Route path="/" element={<Navbar />}>
         <Route index element={<HomePage />} />
           <Route path="signin" element={<UserAuthForm type="sign-in" />} />
           <Route path="signup" element={<UserAuthForm type="sign-up" />} />
-          
+          <Route path="search/:query" element={<SearchPage />} />
+          <Route path="*" element={<PageNotFound />} />
+          <Route path="/user/:id" element={<UserProfilePage />} />
           {/* <Route path="settings/edit-profile" element={<settings/>}/> */}
           
         </Route>

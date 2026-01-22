@@ -257,6 +257,7 @@ server.post("/all-latest-blogs-count", async (req, res) => {
     return res.status(500).json({error: err.message});
   }
 })
+
 server.get('/trending-blogs', async (req, res) => {
   try {
     let blogs = await Blog.find({ drafts: false })
@@ -284,16 +285,22 @@ server.get('/trending-blogs', async (req, res) => {
 
 server.post('/search-blogs', async (req, res) => {
   try {
-    let { tag } = req.body;
-   
-    let findQuery = { tags: tag, drafts: false };
-    let maxLimit = 5;
+    let { tag, query, page } = req.body;
+    let findQuery;
+
+    if (tag) {
+      findQuery = { tags: tag, drafts: false };
+    }else if(query){
+      findQuery={ drafts: false, title: new RegExp(query, 'i') }
+    }
+    let maxLimit = 1;
     let blogs = await Blog.find(findQuery)
       .populate("author", "personal_info.profile_img personal_info.username personal_info.fullname -_id")
       .sort({ "publishedAt": -1 })
       .select("blog_id title desc banner activity tags publishedAt -_id")
+      .skip((page - 1) * maxLimit)
       .limit(maxLimit)
-   
+    
     return res.status(200).json({blogs})
 
   }
@@ -302,11 +309,64 @@ server.post('/search-blogs', async (req, res) => {
   }
 })
 
+server.post("/search-blogs-count", async (req, res) => {
+  try {
+    
+    let { tag,query } = req.body;
+    let findQuery;
+
+    if (tag) {
+      findQuery = { tags: tag, drafts: false };
+    }else if(query){
+      findQuery={ drafts: false, title: new RegExp(query, 'i') }
+    }
+    
+    let count = await Blog.countDocuments(findQuery);
+   
+    return res.status(200).json({ totalDocs: count })
+  }
+  catch (err) {
+    return res.status(500).json({ error: err.message })
+  }
+})
+
+server.post('/search-users',async (req, res) => {
+  try {
+    let { query } = req.body;
+    let users = await User.find({ "personal_info.username": new RegExp(query, 'i') })
+      .limit(50)
+      .select("personal_info.fullname personal_info.username personal_info.profile_img -_id")
+    if (users) {
+      return res.status(200).json({users})
+    }
+  }
+  catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+})
+
+server.post("/user-profile", async (req, res) => {
+  try {
+    let { username } = req.body;
+  
+    let user = await User.findOne({ "personal_info.username": username })
+      .select("-personal_info.password -google_auth -updateAt -blogs")
+   
+    if (user) {
+      return res.status(200).json({user})
+    }
+  }
+  catch (err) {
+    console.log(err.message);
+    return res.status(500).json({ error: err.message });
+    
+  }
+})
+
 server.post('/create-blog', verifyJWT, async (req, res) => {
 
   try {
     let authorId = req.user;
-
     let { title, banner, content, tags, desc, drafts } = req.body;
  
     if (!title.length) {

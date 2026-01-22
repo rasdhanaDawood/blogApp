@@ -8,6 +8,7 @@ export const filterPaginationData = async({ create_new_arr = false, state, data,
         obj = { ...state,results:[...state.results,...data],page:page }
     }
     else {
+    
         await axios.post(`${API}${countRoute}`, data_to_send)
             .then(({ data: { totalDocs } }) => {
                 obj = { results: data, page: 1, totalDocs }
